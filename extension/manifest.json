@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "MAD-DM Integration Module",
+  "version": "1.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmkUMOakGmp4jjfKDVzL1Ia5zaAZ6oD/DRH0FrkEmQ1cZZYSNlx3l0Rg2nSqS9pIls6AtHUa2FxtePyK7JKKviDdLD6VaL3ZOdtvxTGFUSUMpGPha7+IbYizsfE6ph6sKlanryDgsS2TvOMprRv+Zs91bffUpfWtUmbW+lkDlNq58Y1/fHkhXjKZxUSQz2PLu7AaxWt+qG5yNe+ayEsCgh4x6fVjwUeXJ+VWPYfQ7Y3S8y8PQI+Mu8jBYgvbP0fyjN6aAZGKTvAWeBAFmexZCwMeZSa1J41RyiSet7KniZmEta0pxrydhDGvQ6L2AYEP3nNvoqV1iJWIpmnll8A1nSQIDAQAB",
+  "description": "Hyper-Speed Multi-Thread Download Manager integration and media sniffer for MAD-DM.",
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "storage",
+    "activeTab",
+    "webRequest",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "MAD-DM Downloader",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "maddm-extension@local.dev",
+      "strict_min_version": "109.0"
+    }
+  }
+}
