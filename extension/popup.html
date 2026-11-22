@@ -352,6 +352,21 @@
     <input type="text" id="urlInput" placeholder="Paste link to download..." />
   </div>
 
+  <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+    <select id="extFormatSelect" style="flex: 1; padding: 6px 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 11px; font-family: var(--font-mono); cursor: pointer;">
+      <option value="mp4" selected>MP4 Video</option>
+      <option value="mp3">MP3 Audio</option>
+      <option value="flac">FLAC Hi-Fi</option>
+    </select>
+    <select id="extResSelect" style="flex: 1; padding: 6px 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 11px; font-family: var(--font-mono); cursor: pointer;">
+      <option value="best" selected>Best Quality</option>
+      <option value="1080p">1080p FHD</option>
+      <option value="720p">720p HD</option>
+      <option value="480p">480p SD</option>
+      <option value="360p">360p Saver</option>
+    </select>
+  </div>
+
   <button id="downloadBtn" class="btn-submit">⚡ DOWNLOAD (16 THREADS)</button>
 
   <div class="footer">

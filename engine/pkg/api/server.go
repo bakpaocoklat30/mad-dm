@@ -112,6 +112,7 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 			Connections int    `json:"connections"`
 			AutoStart   bool   `json:"auto_start"`
 			Format      string `json:"format"`
+			Resolution  string `json:"resolution"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -123,7 +124,7 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		task, err := s.manager.AddTaskWithFormat(req.URL, req.Directory, req.Connections, req.Format)
+		task, err := s.manager.AddTaskWithFormatAndResolution(req.URL, req.Directory, req.Connections, req.Format, req.Resolution)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -304,6 +305,7 @@ func (s *Server) handlePlaylistDownload(w http.ResponseWriter, r *http.Request) 
 		Directory      string   `json:"directory"`
 		Connections    int      `json:"connections"`
 		Format         string   `json:"format"` // "mp4", "mp3", "flac"
+		Resolution     string   `json:"resolution"`
 		AutoStart      bool     `json:"auto_start"`
 		SelectedIDs    []string `json:"selected_ids"` // optional
 		Merge          bool     `json:"merge"`
@@ -339,7 +341,7 @@ func (s *Server) handlePlaylistDownload(w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 
-		task, err := s.manager.AddTaskWithFormat(entry.URL, req.Directory, req.Connections, req.Format)
+		task, err := s.manager.AddTaskWithFormatAndResolution(entry.URL, req.Directory, req.Connections, req.Format, req.Resolution)
 		if err == nil {
 			if req.AutoStart {
 				_ = s.manager.StartTask(task.ID)
@@ -368,8 +370,8 @@ func (s *Server) handlePlaylistDownload(w http.ResponseWriter, r *http.Request) 
 			mergedName = fmt.Sprintf("[MERGED] %s.%s", cleanTitle, ext)
 		}
 
-		mergedTask = s.manager.AddMergedTask(mergedName, req.Directory, ext, totalEstimatedSize)
-		s.manager.CoordinatePlaylistMerge(createdTasks, mergedTask, ext, req.KeepParts)
+		mergedTask = s.manager.AddMergedTask(mergedName, req.Directory, ext, req.Resolution, totalEstimatedSize)
+		s.manager.CoordinatePlaylistMerge(createdTasks, mergedTask, ext, req.Resolution, req.KeepParts)
 	}
 
 	res := map[string]interface{}{
@@ -396,6 +398,7 @@ func (s *Server) handleTasksMerge(w http.ResponseWriter, r *http.Request) {
 		TaskIDs        []string `json:"task_ids"`
 		OutputFilename string   `json:"output_filename"`
 		Format         string   `json:"format"`
+		Resolution     string   `json:"resolution"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -438,11 +441,11 @@ func (s *Server) handleTasksMerge(w http.ResponseWriter, r *http.Request) {
 		outName = fmt.Sprintf("[MERGED] Manual_Merge_%d.%s", time.Now().Unix(), ext)
 	}
 
-	mergedTask := s.manager.AddMergedTask(outName, targetDir, ext, totalSize)
+	mergedTask := s.manager.AddMergedTask(outName, targetDir, ext, req.Resolution, totalSize)
 	mergedTask.Status = downloader.StatusDownloading
 
 	go func() {
-		err := downloader.MergeFiles(inputPaths, mergedTask.FilePath(), ext)
+		err := downloader.MergeFiles(inputPaths, mergedTask.FilePath(), ext, req.Resolution)
 		if err != nil {
 			mergedTask.Status = downloader.StatusError
 			mergedTask.Error = err.Error()

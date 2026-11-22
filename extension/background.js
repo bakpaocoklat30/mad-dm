@@ -103,7 +103,7 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
 // Message bus
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "DOWNLOAD_URL") {
-    sendToEngine(msg.url, msg.filename, msg.format || "", msg.isPlaylist || false, msg.merge || false)
+    sendToEngine(msg.url, msg.filename, msg.format || "", msg.isPlaylist || false, msg.merge || false, msg.resolution || "best")
       .then((data) => sendResponse({ success: true, data }))
       .catch((err) => sendResponse({ success: false, error: err.message }));
     return true;
@@ -116,13 +116,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-async function sendToEngine(url, filename = "", format = "", isPlaylist = false, merge = false) {
+async function sendToEngine(url, filename = "", format = "", isPlaylist = false, merge = false, resolution = "best") {
   try {
     let endpoint = `${ENGINE_API}/api/tasks`;
     let body = {
       url: url,
       connections: 16,
       format: format || "",
+      resolution: resolution || "best",
       auto_start: true
     };
 

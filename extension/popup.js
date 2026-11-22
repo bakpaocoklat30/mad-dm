@@ -10,6 +10,14 @@ const mediaContainer = document.getElementById("mediaContainer");
 const mediaCount = document.getElementById("mediaCount");
 const openOptionsBtn = document.getElementById("openOptionsBtn");
 const openSettingsLink = document.getElementById("openSettingsLink");
+const extFormatSelect = document.getElementById("extFormatSelect");
+const extResSelect = document.getElementById("extResSelect");
+
+if (extFormatSelect && extResSelect) {
+  extFormatSelect.addEventListener("change", () => {
+    extResSelect.style.display = (extFormatSelect.value === "mp4") ? "block" : "none";
+  });
+}
 
 // 1. Check engine health
 async function checkEngine() {
@@ -50,9 +58,11 @@ async function loadTabMedia() {
         mediaContainer.querySelectorAll(".btn-sniff-dl").forEach((btn) => {
           btn.addEventListener("click", () => {
             const mediaUrl = btn.getAttribute("data-url");
+            const fmt = extFormatSelect ? extFormatSelect.value : "mp4";
+            const res = extResSelect ? extResSelect.value : "best";
             btn.textContent = "QUEUED...";
             btn.disabled = true;
-            chrome.runtime.sendMessage({ type: "DOWNLOAD_URL", url: mediaUrl });
+            chrome.runtime.sendMessage({ type: "DOWNLOAD_URL", url: mediaUrl, format: fmt, resolution: res });
           });
         });
       } else {
@@ -89,10 +99,13 @@ downloadBtn.addEventListener("click", () => {
   const url = urlInput.value.trim();
   if (!url) return;
 
+  const fmt = extFormatSelect ? extFormatSelect.value : "mp4";
+  const res = extResSelect ? extResSelect.value : "best";
+
   downloadBtn.disabled = true;
   downloadBtn.textContent = "DISPATCHING...";
 
-  chrome.runtime.sendMessage({ type: "DOWNLOAD_URL", url }, (res) => {
+  chrome.runtime.sendMessage({ type: "DOWNLOAD_URL", url, format: fmt, resolution: res }, (res) => {
     downloadBtn.disabled = false;
     downloadBtn.textContent = "⚡ DOWNLOAD (16 THREADS)";
     if (res && res.success) {

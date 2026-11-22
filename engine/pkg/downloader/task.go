@@ -57,7 +57,8 @@ type Task struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	Chunks      []*Chunk  `json:"chunks"`
 	IsStreaming bool      `json:"is_streaming"`
-	Format      string    `json:"format,omitempty"` // "mp4", "mp3", "flac"
+	Format      string    `json:"format,omitempty"`     // "mp4", "mp3", "flac"
+	Resolution  string    `json:"resolution,omitempty"` // "best", "1080p", "720p", "480p", "360p"
 	IsMerged    bool      `json:"is_merged,omitempty"`
 	Category    string    `json:"category,omitempty"` // "Audio", "Documents", "Program", "Archive", "Video"
 
@@ -115,6 +116,17 @@ func (t *Task) SetFormat(format string) {
 		t.Format = "mp4"
 	} else {
 		t.Format = ""
+	}
+}
+
+func (t *Task) SetResolution(resolution string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	res := strings.ToLower(strings.TrimSpace(resolution))
+	if res == "2160p" || res == "1440p" || res == "1080p" || res == "720p" || res == "480p" || res == "360p" {
+		t.Resolution = res
+	} else {
+		t.Resolution = "best"
 	}
 }
 
@@ -578,6 +590,48 @@ func (t *Task) initChunks() {
 	}
 }
 
+func getYtDlpVideoFormatArgs(resolution string, hasFfmpeg bool) []string {
+	res := strings.ToLower(strings.TrimSpace(resolution))
+	var hFilter string
+	switch res {
+	case "2160p", "4k":
+		hFilter = "[height<=2160]"
+	case "1440p", "2k":
+		hFilter = "[height<=1440]"
+	case "1080p", "1080":
+		hFilter = "[height<=1080]"
+	case "720p", "720":
+		hFilter = "[height<=720]"
+	case "480p", "480":
+		hFilter = "[height<=480]"
+	case "360p", "360":
+		hFilter = "[height<=360]"
+	default:
+		hFilter = ""
+	}
+
+	if hasFfmpeg {
+		if hFilter != "" {
+			fmtStr := fmt.Sprintf("bestvideo%s[ext=mp4]+bestaudio[ext=m4a]/bestvideo%s+bestaudio/best%s[ext=mp4]/best%s", hFilter, hFilter, hFilter, hFilter)
+			return []string{
+				"--format", fmtStr,
+				"--merge-output-format", "mp4",
+				"--postprocessor-args", "ffmpeg:-movflags +faststart",
+			}
+		}
+		return []string{
+			"--format", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best",
+			"--merge-output-format", "mp4",
+			"--postprocessor-args", "ffmpeg:-movflags +faststart",
+		}
+	}
+
+	if hFilter != "" {
+		return []string{"--format", fmt.Sprintf("best%s[ext=mp4]/best%s", hFilter, hFilter)}
+	}
+	return []string{"--format", "best[ext=mp4]/best"}
+}
+
 func (t *Task) runStreaming(ctx context.Context) {
 	ytPath := getYtDlpPath()
 	ffmpegPath := getFfmpegPath()
@@ -587,6 +641,7 @@ func (t *Task) runStreaming(ctx context.Context) {
 	if desiredFmt != "mp3" && desiredFmt != "flac" {
 		desiredFmt = "mp4"
 	}
+	resOpt := t.Resolution
 	currFilename := t.Filename
 	dir := t.Directory
 	conns := t.Connections
@@ -623,11 +678,7 @@ func (t *Task) runStreaming(ctx context.Context) {
 	case "flac":
 		args = append(args, "-x", "--audio-format", "flac")
 	default: // mp4
-		if ffmpegPath != "" {
-			args = append(args, "--format", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best", "--merge-output-format", "mp4")
-		} else {
-			args = append(args, "--format", "best[ext=mp4]/best")
-		}
+		args = append(args, getYtDlpVideoFormatArgs(resOpt, ffmpegPath != "")...)
 	}
 	args = append(args, t.URL)
 

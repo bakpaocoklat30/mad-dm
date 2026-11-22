@@ -723,6 +723,49 @@
       color: var(--green-neon);
     }
 
+    .badge-format.resolution {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: var(--purple-neon);
+      color: var(--purple-neon);
+    }
+
+    /* Resolution Selector */
+    .resolution-selector {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .res-option {
+      flex: 1;
+      min-width: 65px;
+      padding: 6px 10px;
+      background: #060b17;
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .res-option:hover {
+      border-color: var(--cyan-neon);
+      color: #fff;
+    }
+
+    .res-option.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--cyan-neon);
+      color: var(--cyan-neon);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+    }
+
     .playlist-item-row {
       display: flex;
       align-items: center;
@@ -931,6 +974,16 @@
           </div>
         </div>
       </div>
+      <div class="form-group" id="modalResGroup">
+        <label>VIDEO RESOLUTION</label>
+        <div class="resolution-selector">
+          <div class="res-option active" id="modal_res_best" onclick="selectModalResolution('best')">Best Quality</div>
+          <div class="res-option" id="modal_res_1080p" onclick="selectModalResolution('1080p')">1080p FHD</div>
+          <div class="res-option" id="modal_res_720p" onclick="selectModalResolution('720p')">720p HD</div>
+          <div class="res-option" id="modal_res_480p" onclick="selectModalResolution('480p')">480p SD</div>
+          <div class="res-option" id="modal_res_360p" onclick="selectModalResolution('360p')">360p Saver</div>
+        </div>
+      </div>
       <div class="form-group">
         <label>PARALLEL CONNECTIONS (THREADS)</label>
         <select id="modalThreads">
@@ -990,6 +1043,20 @@
             <div class="format-option" id="pl_fmt_flac" onclick="selectPlaylistFormat('flac')">
               <span>FLAC Hi-Fi</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Video Resolution selector for playlist -->
+        <div id="plResGroup" style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-bright); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--cyan-neon); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-badge-hd-fill"></i> VIDEO RESOLUTION
+          </div>
+          <div class="resolution-selector" style="margin: 0;">
+            <div class="res-option active" id="pl_res_best" onclick="selectPlaylistResolution('best')">Best Quality</div>
+            <div class="res-option" id="pl_res_1080p" onclick="selectPlaylistResolution('1080p')">1080p FHD</div>
+            <div class="res-option" id="pl_res_720p" onclick="selectPlaylistResolution('720p')">720p HD</div>
+            <div class="res-option" id="pl_res_480p" onclick="selectPlaylistResolution('480p')">480p SD</div>
+            <div class="res-option" id="pl_res_360p" onclick="selectPlaylistResolution('360p')">360p Saver</div>
           </div>
         </div>
 
@@ -1182,14 +1249,48 @@
     }
 
     let selectedModalFormat = 'mp4';
+    let selectedModalResolution = 'best';
     let currentPlaylistInfo = null;
     let selectedPlaylistFormat = 'mp4';
+    let selectedPlaylistResolution = 'best';
 
     function selectModalFormat(fmt) {
       selectedModalFormat = fmt;
       ['mp4', 'mp3', 'flac'].forEach(f => {
         const el = document.getElementById(`fmt_${f}`);
         if (el) el.classList.toggle('active', f === fmt);
+      });
+      const resGroup = document.getElementById('modalResGroup');
+      if (resGroup) {
+        resGroup.style.display = (fmt === 'mp4') ? 'block' : 'none';
+      }
+    }
+
+    function selectModalResolution(res) {
+      selectedModalResolution = res;
+      ['best', '1080p', '720p', '480p', '360p'].forEach(r => {
+        const el = document.getElementById(`modal_res_${r}`);
+        if (el) el.classList.toggle('active', r === res);
+      });
+    }
+
+    function selectPlaylistFormat(fmt) {
+      selectedPlaylistFormat = fmt;
+      ['mp4', 'mp3', 'flac'].forEach(f => {
+        const el = document.getElementById(`pl_fmt_${f}`);
+        if (el) el.classList.toggle('active', f === fmt);
+      });
+      const plRes = document.getElementById('plResGroup');
+      if (plRes) {
+        plRes.style.display = (fmt === 'mp4') ? 'flex' : 'none';
+      }
+    }
+
+    function selectPlaylistResolution(res) {
+      selectedPlaylistResolution = res;
+      ['best', '1080p', '720p', '480p', '360p'].forEach(r => {
+        const el = document.getElementById(`pl_res_${r}`);
+        if (el) el.classList.toggle('active', r === res);
       });
     }
 
@@ -1235,14 +1336,6 @@
       document.getElementById('playlistContent').style.display = 'none';
       document.getElementById('playlistLoading').style.display = 'none';
       currentPlaylistInfo = null;
-    }
-
-    function selectPlaylistFormat(fmt) {
-      selectedPlaylistFormat = fmt;
-      ['mp4', 'mp3', 'flac'].forEach(f => {
-        const el = document.getElementById(`pl_fmt_${f}`);
-        if (el) el.classList.toggle('active', f === fmt);
-      });
     }
 
     async function quitApp() {
@@ -1443,6 +1536,7 @@
             url,
             connections: 16,
             format: selectedPlaylistFormat,
+            resolution: selectedPlaylistResolution,
             auto_start: true,
             selected_ids: selectedIds,
             merge: isMerge,
@@ -1461,16 +1555,6 @@
       } finally {
         btn.disabled = false;
       }
-    }
-
-    function openModal() {
-      document.getElementById('addModal').style.display = 'flex';
-      document.getElementById('modalUrl').focus();
-    }
-
-    function closeModal() {
-      document.getElementById('addModal').style.display = 'none';
-      document.getElementById('modalUrl').value = '';
     }
 
     function formatBytes(bytes) {
@@ -1507,7 +1591,13 @@
         const res = await fetch(`${API_BASE}/api/tasks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, connections, format: selectedModalFormat, auto_start: true })
+          body: JSON.stringify({
+            url,
+            connections,
+            format: selectedModalFormat,
+            resolution: selectedModalResolution,
+            auto_start: true
+          })
         });
         if (res.ok) {
           closeModal();
@@ -1672,6 +1762,7 @@
                   <div class="task-name">
                     ${isMerged ? '<span class="badge-format" style="background: rgba(0, 255, 136, 0.15); border-color: var(--green-neon); color: var(--green-neon);"><i class="bi bi-intersect"></i> MERGED</span>' : ''}
                     <span class="badge-format ${fmt}">${fmt.toUpperCase()}</span>
+                    ${task.resolution && fmt === 'mp4' ? `<span class="badge-format resolution">${task.resolution.toUpperCase()}</span>` : ''}
                     ${task.filename || task.url}
                   </div>
                   <div class="task-tags">

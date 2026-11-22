@@ -71,10 +71,14 @@ func generateID() string {
 }
 
 func (m *Manager) AddTask(rawURL, dir string, connections int) (*Task, error) {
-	return m.AddTaskWithFormat(rawURL, dir, connections, "")
+	return m.AddTaskWithFormatAndResolution(rawURL, dir, connections, "", "best")
 }
 
 func (m *Manager) AddTaskWithFormat(rawURL, dir string, connections int, format string) (*Task, error) {
+	return m.AddTaskWithFormatAndResolution(rawURL, dir, connections, format, "best")
+}
+
+func (m *Manager) AddTaskWithFormatAndResolution(rawURL, dir string, connections int, format, resolution string) (*Task, error) {
 	homeDir, _ := os.UserHomeDir()
 	userDownloads := ""
 	if homeDir != "" {
@@ -89,6 +93,7 @@ func (m *Manager) AddTaskWithFormat(rawURL, dir string, connections int, format 
 	id := generateID()
 	task := NewTask(id, rawURL, dir, connections)
 	task.SetFormat(format)
+	task.SetResolution(resolution)
 	task.SetStateSaver(func() {
 		_ = m.save()
 		m.broadcast(task)
@@ -115,7 +120,7 @@ func (m *Manager) AddTaskWithFormat(rawURL, dir string, connections int, format 
 	return task, nil
 }
 
-func (m *Manager) AddMergedTask(filename, dir, format string, totalSize int64) *Task {
+func (m *Manager) AddMergedTask(filename, dir, format, resolution string, totalSize int64) *Task {
 	homeDir, _ := os.UserHomeDir()
 	userDownloads := ""
 	if homeDir != "" {
@@ -137,6 +142,7 @@ func (m *Manager) AddMergedTask(filename, dir, format string, totalSize int64) *
 	task := NewTask(id, "local://merged-playlist", dir, 1)
 	task.Filename = filename
 	task.Format = format
+	task.SetResolution(resolution)
 	task.Category = cat
 	task.IsMerged = true
 	task.TotalSize = totalSize
@@ -157,7 +163,7 @@ func (m *Manager) AddMergedTask(filename, dir, format string, totalSize int64) *
 	return task
 }
 
-func (m *Manager) CoordinatePlaylistMerge(parts []*Task, mergedTask *Task, format string, keepParts bool) {
+func (m *Manager) CoordinatePlaylistMerge(parts []*Task, mergedTask *Task, format, resolution string, keepParts bool) {
 	go func() {
 		// Wait for all parts to finish
 		for {
@@ -215,7 +221,7 @@ func (m *Manager) CoordinatePlaylistMerge(parts []*Task, mergedTask *Task, forma
 		}
 
 		outputPath := mergedTask.FilePath()
-		err := MergeFiles(inputPaths, outputPath, format)
+		err := MergeFiles(inputPaths, outputPath, format, resolution)
 		if err != nil {
 			mergedTask.mu.Lock()
 			mergedTask.Status = StatusError
