@@ -104,3 +104,25 @@ make build-all
 ```
 
 Ini akan meng-compile ulang biner untuk Windows (`.exe`), Linux 64-bit, macOS Intel, dan macOS Apple Silicon dalam hitungan detik.
+
+---
+
+### 5. Membuat Installer Windows (.exe) di Komputer Windows
+Jika Anda melakukan `git clone` di komputer Windows:
+
+**Cara Otomatis (1-Klik):**
+1. Pastikan **Node.js (LTS)** sudah terinstall dari [nodejs.org](https://nodejs.org/).
+2. Cukup klik ganda (double-click) file **`build-installer-windows.bat`**.
+3. Script otomatis akan:
+   - Mengompilasi engine Go server ke `bin\mad-dm-server-windows-amd64.exe` (jika ada Go).
+   - Mengunduh dependensi `yt-dlp.exe` & `ffmpeg.exe` ke folder `bin\` jika belum ada.
+   - Menjalankan `npm install` dan `electron-builder` di folder `ui\`.
+   - Menghasilkan installer `ui\dist\MAD-DM Setup 1.0.0.exe` dan langsung membuka foldernya di Windows Explorer.
+
+**Cara Manual via Command Prompt:**
+```cmd
+cd ui
+npm install
+npx electron-builder --win --x64
+```
+Hasil installer akan berada di folder `ui\dist\`.

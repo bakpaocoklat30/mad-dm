@@ -1,0 +1,158 @@
+@echo off
+setlocal enabledelayedexpansion
+title MAD-DM - Windows Installer Builder
+
+echo =======================================================
+echo    ⚡ MAD-DM Desktop Windows Installer Builder
+echo =======================================================
+echo.
+
+:: 1. Periksa Node.js & npm
+where node >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Node.js tidak terdeteksi!
+    echo Silakan unduh dan install Node.js ^(versi LTS^) dari https://nodejs.org/
+    echo Setelah selesai install, buka kembali Command Prompt dan jalankan script ini.
+    echo.
+    pause
+    exit /b 1
+)
+
+where npm >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] npm tidak terdeteksi! Pastikan Node.js terinstall lengkap.
+    pause
+    exit /b 1
+)
+
+echo [1/5] Node.js dan npm terdeteksi:
+call node -v
+call npm -v
+echo.
+
+:: 2. Buat direktori bin jika belum ada
+if not exist "bin" mkdir "bin"
+
+:: 3. Kompilasi Engine Go Server
+where go >nul 2>nul
+if %ERRORLEVEL% equ 0 (
+    echo [2/5] Golang terdeteksi. Mengompilasi engine Go server ^& CLI untuk Windows x64...
+    cd engine
+    set CGO_ENABLED=0
+    set GOOS=windows
+    set GOARCH=amd64
+    go build -ldflags="-s -w" -o "..\bin\mad-dm-server-windows-amd64.exe" .\cmd\server
+    if !ERRORLEVEL! neq 0 (
+        echo [ERROR] Kompilasi Go server gagal.
+        cd ..
+        pause
+        exit /b 1
+    )
+    go build -ldflags="-s -w" -o "..\bin\mad-dm-cli-windows-amd64.exe" .\cmd\cli
+    cd ..
+    echo    -> Engine Go server berhasil dikompilasi ke bin\mad-dm-server-windows-amd64.exe
+) else (
+    echo [2/5] Golang tidak terdeteksi di PATH sistem.
+    if exist "bin\mad-dm-server-windows-amd64.exe" (
+        echo    -> Menggunakan biner engine yang sudah ada di bin\mad-dm-server-windows-amd64.exe
+    ) else (
+        echo [ERROR] Golang belum terinstall dan biner bin\mad-dm-server-windows-amd64.exe belum tersedia.
+        echo Silakan unduh dan install Golang dari https://go.dev/dl/ ^(lalu jalankan script ini kembali^).
+        pause
+        exit /b 1
+    )
+)
+echo.
+
+:: 4. Periksa / Download yt-dlp.exe
+echo [3/5] Memeriksa yt-dlp.exe di folder bin\...
+if not exist "bin\yt-dlp.exe" (
+    echo    yt-dlp.exe belum ada, mengunduh biner resmi dari GitHub releases...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object Net.WebClient).DownloadFile('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe', 'bin\yt-dlp.exe')"
+    if not exist "bin\yt-dlp.exe" (
+        echo [WARNING] Gagal mengunduh yt-dlp.exe secara otomatis.
+        echo Anda dapat mengunduh manual dari https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+        echo lalu simpan ke dalam folder 'bin\yt-dlp.exe'
+    ) else (
+        echo    -> yt-dlp.exe berhasil diunduh ke folder bin\
+    )
+) else (
+    echo    -> yt-dlp.exe sudah tersedia.
+)
+echo.
+
+:: 5. Periksa / Download ffmpeg.exe
+echo [4/5] Memeriksa ffmpeg.exe di folder bin\...
+if not exist "bin\ffmpeg.exe" (
+    where ffmpeg >nul 2>nul
+    if !ERRORLEVEL! equ 0 (
+        echo    ffmpeg ditemukan di PATH sistem, menyalin ke folder bin...
+        for /f "delims=" %%I in ('where ffmpeg') do (
+            if not exist "bin\ffmpeg.exe" copy "%%I" "bin\ffmpeg.exe" >nul
+        )
+    )
+)
+
+if not exist "bin\ffmpeg.exe" (
+    echo    ffmpeg.exe belum ada di bin\, mengunduh paket resmi FFmpeg Windows (~35 MB)...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+        "$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; " ^
+        "Write-Host '   Downloading FFmpeg zip...'; " ^
+        "(New-Object Net.WebClient).DownloadFile('https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip', 'bin\ffmpeg.zip'); " ^
+        "Write-Host '   Extracting ffmpeg.exe...'; " ^
+        "Expand-Archive -Path 'bin\ffmpeg.zip' -DestinationPath 'bin\ffmpeg_temp' -Force; " ^
+        "$ff = Get-ChildItem -Path 'bin\ffmpeg_temp' -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1; " ^
+        "if ($ff) { Move-Item -Path $ff.FullName -Destination 'bin\ffmpeg.exe' -Force }; " ^
+        "Remove-Item 'bin\ffmpeg_temp' -Recurse -Force; " ^
+        "Remove-Item 'bin\ffmpeg.zip' -Force"
+    if not exist "bin\ffmpeg.exe" (
+        echo [WARNING] Gagal mengunduh otomatis ffmpeg.exe.
+        echo Anda dapat mengunduh ffmpeg.exe secara manual dari https://www.gyan.dev/ffmpeg/builds/
+        echo lalu simpan file 'ffmpeg.exe' ke dalam folder 'bin\'
+    ) else (
+        echo    -> ffmpeg.exe berhasil diekstrak ke folder bin\
+    )
+) else (
+    echo    -> ffmpeg.exe sudah tersedia.
+)
+echo.
+
+:: 6. Build Electron Desktop Installer
+echo [5/5] Menginstal dependencies dan membangun installer Windows...
+cd ui
+echo    Menjalankan npm install...
+call npm install
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] npm install gagal. Periksa koneksi internet Anda.
+    cd ..
+    pause
+    exit /b 1
+)
+
+echo.
+echo    Menjalankan electron-builder untuk membuat Installer Windows (NSIS & Portable)...
+call npx electron-builder --win --x64
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] electron-builder gagal.
+    cd ..
+    pause
+    exit /b 1
+)
+cd ..
+
+echo.
+echo =======================================================
+echo    🎉 SUKSES! INSTALLER WINDOWS BERHASIL DIBUAT!
+echo =======================================================
+echo.
+echo File installer telah dibuat dan tersimpan di:
+echo    - NSIS Installer (.exe) : ui\dist\MAD-DM Setup 1.0.0.exe
+echo    - Standalone Portable   : ui\dist\MAD-DM 1.0.0.exe
+echo.
+
+if exist "ui\dist\MAD-DM Setup 1.0.0.exe" (
+    echo Membuka folder output ui\dist di Windows Explorer...
+    explorer.exe "ui\dist"
+)
+
+pause
