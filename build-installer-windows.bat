@@ -56,8 +56,28 @@ if %ERRORLEVEL% equ 0 (
     if exist "bin\mad-dm-server-windows-amd64.exe" (
         echo    -> Menggunakan biner engine yang sudah ada di bin\mad-dm-server-windows-amd64.exe
     ) else (
-        echo [ERROR] Golang belum terinstall dan biner bin\mad-dm-server-windows-amd64.exe belum tersedia.
-        echo Silakan unduh dan install Golang dari https://go.dev/dl/ ^(lalu jalankan script ini kembali^).
+        echo [INFO] Engine Go belum dikompilasi dan Golang belum terpasang di sistem Windows ini.
+        where winget >nul 2>nul
+        if !ERRORLEVEL! equ 0 (
+            echo Windows Package Manager ^(winget^) terdeteksi.
+            set /p INSTALL_GO="Ingin menginstall Golang secara otomatis sekarang via winget? [Y/N]: "
+            if /i "!INSTALL_GO!"=="Y" (
+                echo.
+                echo Mengunduh dan memasang Golang... Mohon tunggu sebentar.
+                winget install --id GoLang.Go -e --accept-source-agreements --accept-package-agreements
+                echo.
+                echo [SELESAI] Golang telah dipasang!
+                echo Silakan TUTUP Command Prompt ini dan KLIK KEMBALI build-installer-windows.bat agar PATH baru terbaca.
+                pause
+                exit /b 0
+            )
+        )
+        echo.
+        echo Pilihan solusi:
+        echo 1. Unduh installer resmi Golang dari: https://go.dev/dl/
+        echo    ^(Pilih go1.x.x.windows-amd64.msi, install sampai selesai, lalu jalankan file .bat ini lagi^).
+        echo 2. ATAU salin file 'MAD-DM Setup 1.0.0.exe' langsung dari Mac Anda tanpa perlu install Golang/Node.js!
+        echo.
         pause
         exit /b 1
     )
