@@ -1,6 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 title MAD-DM - Windows Installer Builder
+cd /d "%~dp0"
 
 echo =======================================================
 echo    ⚡ MAD-DM Desktop Windows Installer Builder
@@ -148,9 +149,24 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo    Menjalankan electron-builder untuk membuat Installer Windows...
+set CSC_IDENTITY_AUTO_DISCOVERY=false
+set WIN_CSC_LINK=
 call npx electron-builder --win --x64
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] electron-builder gagal.
+    echo.
+    echo ===================================================================
+    echo [ERROR] electron-builder gagal mengekstrak paket winCodeSign.
+    echo.
+    echo Penyebab: Windows membatasi hak akses pembuatan symbolic link.
+    echo.
+    echo SOLUSI CEPAT:
+    echo 1. Tutup jendela CMD ini.
+    echo 2. KLIK KANAN file 'build-installer-windows.bat'
+    echo    lalu pilih: 'Run as administrator' (Jalankan sebagai administrator).
+    echo.
+    echo ATAU aktifkan Developer Mode:
+    echo    Buka Windows Settings -^> Privacy & Security -^> For developers -^> ON.
+    echo ===================================================================
     cd ..
     pause
     exit /b 1

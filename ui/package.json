@@ -38,6 +38,7 @@
       "target": ["dmg", "zip"]
     },
     "win": {
+      "signAndEditExecutable": false,
       "target": ["nsis", "portable"]
     },
     "linux": {
